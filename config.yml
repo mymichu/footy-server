@@ -1,5 +1,0 @@
-database:
-  connectionUri: "exampledb"
-
-server:
-  port: 8080
