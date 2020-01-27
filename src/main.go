@@ -1,6 +1,7 @@
 package main
 
 import (
+	"footy-server-app/mock"
 	"os"
 	"footy-server-app/restapi"
 	"footy-server-app/config"
@@ -28,5 +29,6 @@ func main() {
 	log.Printf("database uri is %s", configuration.Database.ConnectionUri)
 	log.Printf("port for this application is %d", configuration.Server.Port)
 	
-	restapi.Listen(configuration.Server.Port)
+	rest := restapi.RestAPISettings{mock.MockLogic{}}
+	rest.Listen(configuration.Server.Port)
 }

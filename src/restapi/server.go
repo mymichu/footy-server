@@ -5,11 +5,11 @@ import (
 	"strconv"
 )
 
-func Listen(port int) {
-	r := gin.Default()
-	r.GET("/user/:id", getSingleUser)
-	r.GET("/game/round", getGameRound)
+func (r* RestAPISettings) Listen(port int) {
+	s := gin.Default()
+	s.GET("/user/:id", getSingleUser)
+	s.GET("/game/round", r.getGameRound)
 	
 	var portString = ":"+strconv.Itoa(port)
-	r.Run(portString) 
+	s.Run(portString) 
 }
