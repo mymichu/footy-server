@@ -1,5 +1,8 @@
 package restapi
 
+type ClientError struct {
+	Error string
+}
 type Game struct {
 	Id string
 	HomeTeam string
@@ -8,8 +11,8 @@ type Game struct {
 
 type GameBet struct {
 	Id string
-	HomeTeamResult string
-	GuestTeamResult string
+	HomeTeamResult uint8
+	GuestTeamResult uint8
 	Joker bool
 }
 
@@ -23,7 +26,8 @@ type GameBetResult struct {
 }
 
 type Logic interface {
-    CurrentRound() []Game
+	CurrentRound() []Game
+	InsertBet(bet GameBet) error
 }
 
 type RestAPISettings struct {
