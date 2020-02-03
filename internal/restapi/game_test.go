@@ -38,9 +38,7 @@ func (m Mock) InsertBet(bet GameBet) error {
 	return err
 }
 
-func TestGetGameRound(t *testing.T) {
-	rest := RestAPISettings{Mock{}}
-
+func createRESTTestContext() (*httptest.ResponseRecorder,*gin.Context,*gin.Engine) {
 	resp := httptest.NewRecorder()
 	gin.SetMode(gin.TestMode)
 	c, r := gin.CreateTestContext(resp)
@@ -48,66 +46,49 @@ func TestGetGameRound(t *testing.T) {
 	r.Use(func(c *gin.Context) {
 		c.Set("profile", "myfakeprofile")
 	})
-	r.GET("/game/round", rest.getGameRound)
+	return resp,c,r
+}
 
-	c.Request, _ = http.NewRequest(http.MethodGet, "/game/round", nil)
-	r.ServeHTTP(resp, c.Request)
+func requestBet(bet GameBet) (string, int) {
+	resp, c, r := createRESTTestContext()
+	const url = "/game/bet"
+	rest := RestAPISettings{Mock{}}
+	r.POST(url, rest.setGameBet)
 
-	var ref Game
-	ref.GuestTeam = "Warriors"
-	ref.HomeTeam = "Sharks"
-	ref.Id = "2019R10G1"
-	round := make([]Game, 1)
-	for i := 0; i < 1; i++ {
-		round[i] = ref
+	reqString, err := json.Marshal(bet)
+	if err == nil {
+		c.Request, _ = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqString))
 	}
+	
+	r.ServeHTTP(resp, c.Request)
+	return resp.Body.String(), resp.Code
+}
+
+func TestGetGameRound(t *testing.T) {
+	resp, c, r:= createRESTTestContext()
+	const url = "/game/round"
+	rest := RestAPISettings{Mock{}}
+	r.GET(url, rest.getGameRound)
+
+	c.Request, _ = http.NewRequest(http.MethodGet, url, nil)
+	r.ServeHTTP(resp, c.Request)
 
 	assert.Equal(t, "[{\"Id\":\"2019R10G1\",\"HomeTeam\":\"Sharks\",\"GuestTeam\":\"Warriors\"}]",resp.Body.String())
 }
 
-
-func TestRestAPISettings_setGameBetGood(t *testing.T) {
-	rest := RestAPISettings{Mock{}}
-
-	resp := httptest.NewRecorder()
-	gin.SetMode(gin.TestMode)
-	c, r := gin.CreateTestContext(resp)
-
-	r.Use(func(c *gin.Context) {
-		c.Set("profile", "myfakeprofile")
-	})
-	r.POST("/game/bet", rest.setGameBet)
-
+func TestRestAPISettingsSetGameBetGood(t *testing.T) {
 	var bet GameBet
-
 	bet.Id = "TestId"
 	bet.HomeTeamResult = 80
 	bet.GuestTeamResult = 40
 	bet.Joker = false
 
-	reqString, err := json.Marshal(bet)
-	if err == nil {
-		c.Request, _ = http.NewRequest(http.MethodPost, "/game/bet", bytes.NewBuffer(reqString))
-	}
-	
-	r.ServeHTTP(resp, c.Request)
-	assert.Equal(t, 200, resp.Code)
-	body := resp.Body.String()
+	body, code := requestBet(bet)
+	assert.Equal(t, 200, code)
 	assert.Equal(t, "{\"Id\":\"TestId\",\"HomeTeamResult\":80,\"GuestTeamResult\":40,\"Joker\":false}",body)
 }
 
-func TestRestAPISettings_setGameBetBad(t *testing.T) {
-	rest := RestAPISettings{Mock{}}
-
-	resp := httptest.NewRecorder()
-	gin.SetMode(gin.TestMode)
-	c, r := gin.CreateTestContext(resp)
-
-	r.Use(func(c *gin.Context) {
-		c.Set("profile", "myfakeprofile")
-	})
-	r.POST("/game/bet", rest.setGameBet)
-
+func TestRestAPISettingsSetGameBetBad(t *testing.T) {
 	var bet GameBet
 
 	bet.Id = "TestId"
@@ -115,13 +96,7 @@ func TestRestAPISettings_setGameBetBad(t *testing.T) {
 	bet.GuestTeamResult = 40
 	bet.Joker = false
 
-	reqString, err := json.Marshal(bet)
-	if err == nil {
-		c.Request, _ = http.NewRequest(http.MethodPost, "/game/bet", bytes.NewBuffer(reqString))
-	}
-	
-	r.ServeHTTP(resp, c.Request)
-	assert.Equal(t, 400, resp.Code)
-	body := resp.Body.String()
+	body, code := requestBet(bet)
+	assert.Equal(t, 400, code)
 	assert.Equal(t, "{\"Error\":\"Home-Team result is over 100\"}", body)
 }
